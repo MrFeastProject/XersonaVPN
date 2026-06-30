@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XersonaVPN(MrFeastProject)</title>
+    <style>
+        :root {
+            --bg-color: #f5f7fa;
+            --primary-blue: #0055ff;
+            --active-green: #2ecc71;
+            --text-secondary: #7c8291;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #d1d5db;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 414px;
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            padding: 0 20px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0 20px 0;
+        }
+
+        .header-btn {
+            width: 24px;
+            height: 24px;
+            stroke: #111;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            cursor: pointer;
+        }
+        
+        .header-title {
+            font-size: 20px; /* Чуть уменьшил, чтобы длинное название влезло */
+            font-weight: 600;
+            color: #000;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 15px;
+            margin-bottom: 25px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ff3b30;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+        .status-dot.active { background-color: var(--active-green); }
+        .status-dot.searching { background-color: #f1c40f; }
+
+        .server-card {
+            background: #ffffff;
+            padding: 16px 20px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.02);
+            margin-bottom: 0;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .server-card:active { transform: scale(0.98); }
+
+        .server-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #000;
+            max-width: 75%;
+        }
+        .server-info div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .ping-badge {
+            font-size: 12px;
+            background: #eef2f6;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: #555;
+            font-weight: 600;
+            margin-left: 8px;
+            flex-shrink: 0;
+            display: inline-block;
+            min-width: 45px;
+            text-align: center;
+        }
+        .ping-badge.fast { background: #d4edda; color: #155724; }
+        .ping-badge.auto { background: #cce5ff; color: #004085; }
+
+        .server-arrow svg {
+            width: 16px;
+            height: 16px;
+            stroke: #b0b8c4;
+            stroke-width: 2.5;
+            fill: none;
+        }
+
+        .power-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1; 
+        }
+
+        .power-btn-wrapper {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+
+        .glow-ring {
+            position: absolute;
+            top: 5px; left: 5px; right: 5px; bottom: 5px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 85, 255, 0.1);
+            box-shadow: 0 0 60px rgba(0, 85, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        .glow-ring.active { border-color: rgba(46, 204, 113, 0.3); box-shadow: 0 0 80px rgba(46, 204, 113, 0.1); }
+        .glow-ring.searching { border-color: rgba(241, 196, 15, 0.3); box-shadow: 0 0 80px rgba(241, 196, 15, 0.1); }
+
+        .power-btn {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px; bottom: 10px;
+            background: #ffffff;
+            border-radius: 50%;
+            border: 3px solid var(--primary-blue);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+        }
+        .power-btn.active { border-color: var(--active-green); box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
+        .power-btn.searching { border-color: #f1c40f; box-shadow: 0 0 20px rgba(241, 196, 15, 0.2); }
+
+        .power-btn:active { transform: scale(0.94); }
+
+        .power-icon-svg {
+            width: 44px;
+            height: 44px;
+            stroke: var(--primary-blue);
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            transition: stroke 0.3s ease;
+        }
+        .power-btn.active .power-icon-svg { stroke: var(--active-green); }
+        .power-btn.searching .power-icon-svg { stroke: #f1c40f; }
+
+        .home-bar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 134px;
+            height: 4px;
+            background-color: #c8ced9;
+            border-radius: 10px;
+        }
+
+        /* MODAL OVERLAY */
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 100;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-content {
+            background: #ffffff;
+            width: 100%;
+            max-height: 80%;
+            padding: 24px 20px 30px 20px;
+            border-radius: 24px 24px 0 0;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out forwards;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: #d1d5db;
+            border-radius: 10px;
+            align-self: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #000;
+        }
+
+        .server-list {
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 10px;
+        }
+
+        .server-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 14px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .server-item.active-item {
+            border-color: var(--primary-blue);
+            background: #f0f5ff;
+        }
+        
+        .server-item-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 60%;
+        }
+
+        .server-item-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #111;
+        }
+        .server-item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .server-item-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .server-item-ping {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            min-width: 35px;
+            text-align: right;
+        }
+        .server-item-ping.fast { color: var(--active-green); }
+        .server-item-ping.slow { color: #e74c3c; }
+
+        .btn-set {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-set:active { transform: scale(0.95); opacity: 0.8; }
+        .btn-set.selected {
+            background: #e9ecef;
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .server-item-auto {
+            border-bottom: 1px solid #e5e7eb;
+            border-radius: 14px 14px 0 0;
+            margin-bottom: 5px;
+            padding-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <svg class="header-btn" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <div class="header-title">XersonaVPN(MrFeastProject)</div>
+            <svg class="header-btn" id="refreshBtn" viewBox="0 0 24 24">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+            </svg>
+        </header>
+
+        <div class="status-container">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Автоматический выбор</span>
+        </div>
+
+        <div class="server-card" id="serverCard">
+            <div class="server-info">
+                <svg viewBox="0 0 24 24" style="width:18px; height:18px; stroke:#333; stroke-width:2; fill:none; flex-shrink:0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <div id="serverName">Автоподключение</div>
+                <span class="ping-badge" id="pingBadge">--- ms</span>
+            </div>
+            <div class="server-arrow">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+        </div>
+
+        <div class="power-section" id="connectBtn">
+            <div class="power-btn-wrapper">
+                <div class="glow-ring" id="glowRing"></div>
+                <div class="power-btn" id="proxyLink">
+                    <svg class="power-icon-svg" viewBox="0 0 24 24">
+                        <path d="M12 2L12 12"></path>
+                        <path d="M18.5 6.5C20.5 8.5 21.5 11 21.5 14C21.5 18.5 18 22 12.5 22C7 22 3.5 18.5 3.5 14C3.5 11 4.5 8.5 6.5 6.5"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="home-bar"></div>
+
+        <div class="modal-overlay" id="modalOverlay">
+            <div class="modal-content">
+                <div class="modal-handle"></div>
+                <div class="modal-title">Выбор сервера</div>
+                <div class="server-list" id="serverList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. ДАННЫЕ (Сервера)
+        // ==========================================
+        const serversData = [
+            {
+                id: 'auto',
+                name: "Автоподключение",
+                desc: "Выбор самого быстрого сервера",
+                link: null
+            },
+            {
+                id: 'server_orig',
+                name: "Основной сервер",
+                desc: "tg10.black-service.ru:47043",
+                link: "tg://proxy?server=tg10.black-service.ru&port=47043&secret=7oQdIWUzgc2G6hPwNyxSx1V0ZzEwLmJsYWNrLXNlcnZpY2UucnU"
+            },
+            {
+                id: 'server1',
+                name: "Основной сервер 2",
+                desc: "tg.black-service.ru:443",
+                link: "tg://proxy?server=tg.black-service.ru&port=443&secret=fcdf767c1c351043643c10f5c3623a0f"
+            },
+            {
+                id: 'server2',
+                name: "Резервный сервер (Нидерланды)",
+                desc: "nl.ask-me.com.ru:8888",
+                link: "tg://proxy?server=nl.ask-me.com.ru&port=8888&secret=2078059d2d59486216ec36d01c5b2ff2"
+            },
+            {
+                id: 'server3',
+                name: "Резервный сервер (Германия)",
+                desc: "de.ask-me.com.ru:8888",
+                link: "tg://proxy?server=de.ask-me.com.ru&port=8888&secret=2078059d2d59486216ec36d01c5b2ff2"
+            }
+        ];
+
+        // ==========================================
+        // 2. DOM ЭЛЕМЕНТЫ
+        // ==========================================
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const serverNameEl = document.getElementById('serverName');
+        const pingBadge = document.getElementById('pingBadge');
+        const proxyBtn = document.getElementById('proxyLink');
+        const glowRing = document.getElementById('glowRing');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const serverList = document.getElementById('serverList');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const serverCard = document.getElementById('serverCard');
+        const connectBtnWrapper = document.getElementById('connectBtn');
+
+        // ==========================================
+        // 3. СОСТОЯНИЕ
+        // ==========================================
+        let currentMode = 'auto';
+        let currentServer = serversData[1];
+        let activeProxyLink = currentServer.link;
+        let pingCache = {};
+
+        // ==========================================
+        // 4. ПИНГ
+        // ==========================================
+        async function pingServer(serverUrl) {
+            if (pingCache[serverUrl]) return pingCache[serverUrl];
+
+            const urlParts = serverUrl.match(/server=([^&]+)/);
+            const host = urlParts ? urlParts[1] : "unknown";
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 2000);
+
+            const start = performance.now();
+            try {
+                await fetch(`https://${host}`, { 
+                    method: 'HEAD', 
+                    mode: 'no-cors', 
+                    cache: 'no-cache',
+                    signal: controller.signal 
+                });
+                clearTimeout(timeout);
+                const result = Math.round(performance.now() - start);
+                pingCache[serverUrl] = result;
+                return result;
+            } catch (e) {
+                return 9999;
+            }
+        }
+
+        // ==========================================
+        // 5. ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+        // ==========================================
+        function updateUI(server, ping = null) {
+            currentServer = server;
+            if (server.link) {
+                activeProxyLink = server.link;
+            }
+
+            if (server.id === 'auto') {
+                serverNameEl.innerText = "Автоподключение";
+                pingBadge.innerText = ping !== null ? `${ping} ms` : "--- ms";
+                pingBadge.className = 'ping-badge auto';
+                statusText.innerText = "Автоматический выбор";
+                statusDot.className = 'status-dot';
+                proxyBtn.classList.remove('active', 'searching');
+                glowRing.classList.remove('active', 'searching');
+            } else {
+                serverNameEl.innerText = server.name;
+                pingBadge.innerText = ping !== null ? `${ping} ms` : "--- ms";
+                pingBadge.className = 'ping-badge fast';
+                statusText.innerText = `Выбран: ${server.name}`;
+                statusDot.className = 'status-dot active';
+                proxyBtn.classList.add('active');
+                glowRing.classList.add('active');
+                proxyBtn.classList.remove('searching');
+                glowRing.classList.remove('searching');
+            }
+        }
+
+        // ==========================================
+        // 6. ЛОГИКА ПОДКЛЮЧЕНИЯ (Только tg://)
+        // ==========================================
+        function connectToProxy() {
+            if (!activeProxyLink || activeProxyLink === "#") {
+                alert("Сервер не выбран!");
+                return;
+            }
+
+            // Создаем скрытую ссылку и "кликаем" по ней программно.
+            const link = document.createElement('a');
+            link.href = activeProxyLink;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // ==========================================
+        // 7. АВТО-ПОИСК
+        // ==========================================
+        async function runAutoConnect() {
+            if (currentMode !== 'auto') return;
+
+            statusDot.className = 'status-dot searching';
+            statusText.innerText = "Поиск лучшего сервера...";
+            proxyBtn.classList.remove('active');
+            proxyBtn.classList.add('searching');
+            glowRing.classList.remove('active');
+            glowRing.classList.add('searching');
+            serverNameEl.innerText = "Проверка...";
+            pingBadge.innerText = "...";
+
+            const serversToCheck = serversData.filter(s => s.id !== 'auto');
+            const results = await Promise.all(serversToCheck.map(async (s) => {
+                const ping = await pingServer(s.link);
+                return { ...s, ping };
+            }));
+
+            results.sort((a, b) => a.ping - b.ping);
+            const best = results[0];
+
+            if (best && best.ping < 9000) {
+                updateUI(best, best.ping);
+            } else {
+                serverNameEl.innerText = "Нет соединения";
+                pingBadge.innerText = "Ошибка";
+                statusText.innerText = "Сервера недоступны";
+                statusDot.className = 'status-dot';
+                proxyBtn.classList.remove('searching', 'active');
+                glowRing.classList.remove('searching', 'active');
+            }
+        }
+
+        // ==========================================
+        // 8. МОДАЛЬНОЕ ОКНО
+        // ==========================================
+        async function openModal() {
+            serverList.innerHTML = '';
+            
+            const autoItem = createServerItem(serversData[0], true, null);
+            serverList.appendChild(autoItem);
+
+            const serversToCheck = serversData.filter(s => s.id !== 'auto');
+            
+            serversToCheck.forEach(s => {
+                const item = createServerItem(s, false, "---");
+                serverList.appendChild(item);
+            });
+
+            modalOverlay.classList.add('open');
+
+            serversToCheck.forEach(async (s) => {
+                const ping = await pingServer(s.link);
+                const el = document.querySelector(`.server-item[data-id="${s.id}"] .server-item-ping`);
+                if (el) {
+                    el.innerText = ping < 9000 ? `${ping} ms` : "—";
+                    el.className = `server-item-ping ${ping < 100 ? 'fast' : (ping < 9000 ? '' : 'slow')}`;
+                }
+            });
+        }
+
+        function createServerItem(data, isAuto, staticPing = null) {
+            const div = document.createElement('div');
+            div.className = `server-item ${isAuto ? 'server-item-auto' : ''}`;
+            div.setAttribute('data-id', data.id);
+            if (!isAuto && currentMode === data.id) div.classList.add('active-item');
+
+            div.innerHTML = `
+                <div class="server-item-left">
+                    <div class="server-item-name">${data.name}</div>
+                    <div class="server-item-desc">${data.desc}</div>
+                </div>
+                <div class="server-item-right">
+                    <div class="server-item-ping ${!isAuto && staticPing && staticPing !== "---" ? 'fast' : ''}">${staticPing !== null ? staticPing : (isAuto ? '' : '---')}</div>
+                    <button class="btn-set ${currentMode === data.id ? 'selected' : ''}" data-id="${data.id}">
+                        ${currentMode === data.id ? 'Выбрано' : 'Set'}
+                    </button>
+                </div>
+            `;
+
+            const btn = div.querySelector('.btn-set');
+            
+            function handleSelect() {
+                modalOverlay.classList.remove('open');
+
+                if (isAuto) {
+                    currentMode = 'auto';
+                    runAutoConnect();
+                } else {
+                    currentMode = data.id;
+                    const pingValue = div.querySelector('.server-item-ping').innerText;
+                    const pingNum = parseInt(pingValue);
+                    updateUI(data, isNaN(pingNum) ? null : pingNum);
+                }
+            }
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleSelect();
+            });
+            div.addEventListener('click', handleSelect);
+            return div;
+        }
+
+        // ==========================================
+        // 9. ОБРАБОТЧИКИ СОБЫТИЙ
+        // ==========================================
+        
+        connectBtnWrapper.addEventListener('click', connectToProxy);
+
+        serverCard.addEventListener('click', openModal);
+        
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+        });
+
+        refreshBtn.addEventListener('click', () => {
+            if (currentMode === 'auto') {
+                runAutoConnect();
+            } else {
+                alert("Вы в ручном режиме. Нажмите на карточку сервера и выберите 'Автоподключение' для автоматического поиска.");
+            }
+        });
+
+        // ==========================================
+        // 10. ЗАПУСК
+        // ==========================================
+        window.addEventListener('load', () => {
+            currentMode = 'auto';
+            runAutoConnect();
+        });
+    </script>
+
+</body>
+</html>
